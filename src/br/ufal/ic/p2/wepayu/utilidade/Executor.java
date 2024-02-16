@@ -298,7 +298,10 @@ public class Executor {
     public void executar(Operacao operacao) throws Exception {
         String emp = operacao.getId();
         switch (operacao) {
-            case ZeraSistema ignored -> this.folha = new SistemaDeFolha();
+            case ZeraSistema ignored -> {
+                this.folha = new SistemaDeFolha();
+                new File("data\\data.xml").delete();
+            }
             case CriaEmpregado criaEmpregado -> this.folha.addEmpregado(emp, criaEmpregado.getEmpregado());
             case RemoveEmpregado ignored -> this.folha.removeEmpregado(emp);
             case RodaFolha rodaFolha -> {
@@ -600,6 +603,7 @@ public class Executor {
                 this.folha.setListaDeMembros(zeraSistema.getListaDeMembros());
                 this.folha.setAgendas(zeraSistema.getAgendas());
             }
+            case RodaFolha rodaFolha -> new File(rodaFolha.getSaida()).delete();
             case CriaEmpregado ignored -> this.folha.removeEmpregado(emp);
             case RemoveEmpregado removeEmpregado -> this.folha.addEmpregado(emp, removeEmpregado.getEmpregado());
             case LancaCartao lancaCartao -> {
