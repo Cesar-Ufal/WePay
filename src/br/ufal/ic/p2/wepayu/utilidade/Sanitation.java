@@ -13,27 +13,16 @@ public class Sanitation {
     private static final DecimalFormat formatter = new DecimalFormat("0.00", new DecimalFormatSymbols(Locale.ITALIAN));
     private static final DecimalFormat formatterHora = new DecimalFormat("0.#", new DecimalFormatSymbols(Locale.ITALIAN));
     private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("d/M/uuuu").withResolverStyle(ResolverStyle.STRICT);
-    private static final DateTimeFormatter dateFileFormatter = DateTimeFormatter.ofPattern("uuuu-dd-MM").withResolverStyle(ResolverStyle.STRICT);
-    public static final String incialDate = "1/1/2005";
+    private static final DateTimeFormatter dateFileFormatter = DateTimeFormatter.ofPattern("uuuu-MM-dd").withResolverStyle(ResolverStyle.STRICT);
 
     public static Atributo getAtributo(String atributoString) throws AtributoNaoExiste{
-        Atributo atributo;
         try{
-            atributo = Atributo.valueOf(atributoString);
+            return Atributo.valueOf(atributoString);
         }catch (Exception e){
             throw new AtributoNaoExiste();
         }
-        return atributo;
     }
-    public static Tipo getTipo(String tipoString) throws TipoInvalido{
-        Tipo tipo;
-        try{
-            tipo = Tipo.valueOf(tipoString);
-        }catch (Exception e){
-            throw new TipoInvalido();
-        }
-        return tipo;
-    }
+
     public static void notNull(String str, Atributo atributo) throws Exception {
         if(str == null || str.isEmpty())
             switch (atributo) {
@@ -52,9 +41,10 @@ public class Sanitation {
                 case agendaPagamento -> throw new Exception("Agenda de pagamento nao pode ser nula.");
                 default -> throw new Exception("Erro Fatal!");
             }
-        if(atributo == Atributo.sindicalizado)
-            toBool(str);
+        if(atributo == Atributo.sindicalizado && ! str.equals("true") && ! str.equals("false"))
+            throw new ValorTrueFalse();
     }
+
     public static float toFloat(String num, TipoNumerico tipo) throws Exception {
         float numFloat;
         try {
@@ -86,13 +76,7 @@ public class Sanitation {
             }
         return numFloat;
     }
-    static public boolean toBool(String trueFalse) throws Exception {
-        if(trueFalse.equals("true"))
-            return true;
-        else if(trueFalse.equals("false"))
-            return false;
-        throw new ValorTrueFalse();
-    }
+
     public static LocalDate isValid(String dataString, TipoDate tipo) throws DataInvalida {
         LocalDate data;
         try {
@@ -112,13 +96,13 @@ public class Sanitation {
     }
 
     public static String toString(Object num, TipoNumerico atributo){
-       if(atributo == TipoNumerico.hora)
-           return formatterHora.format((float) num);
-       if(atributo == TipoNumerico.data)
-           return dateFormatter.format((LocalDate) num);
-       if(atributo == TipoNumerico.dataFile)
+        if(atributo == TipoNumerico.hora)
+            return formatterHora.format((float) num);
+        if(atributo == TipoNumerico.data)
+            return dateFormatter.format((LocalDate) num);
+        if(atributo == TipoNumerico.dataFile)
            return dateFileFormatter.format((LocalDate) num);
-       return formatter.format((float) num);
+        return formatter.format((float) num);
     }
 
     public static void ordemCronologica(LocalDate dataIncial, LocalDate dataFinal) throws Cronologica {

@@ -1,11 +1,16 @@
 package br.ufal.ic.p2.wepayu.models;
 
 import br.ufal.ic.p2.wepayu.Exception.*;
+import br.ufal.ic.p2.wepayu.models.Agendas.AgendaDePagamento;
+import br.ufal.ic.p2.wepayu.models.Agendas.Mensal;
+import br.ufal.ic.p2.wepayu.models.Agendas.Semanal;
+import br.ufal.ic.p2.wepayu.models.Empregados.Empregado;
+import br.ufal.ic.p2.wepayu.models.Sindicato.MembroSindicato;
 
 import java.util.*;
 
 public class SistemaDeFolha {
-    private Map<String, MembroSindicato> listaDeMembros;
+    private Map<String, String> listaDeMembros;
     private Map<String, Empregado> empregados;
     private Map<String, AgendaDePagamento> agendas;
 
@@ -25,31 +30,44 @@ public class SistemaDeFolha {
     public void setEmpregados(Map<String, Empregado>  empregados) {
         this.empregados = empregados;
     }
-    public void add(Empregado empregado){
-        this.empregados.put(empregado.getUuid(), empregado);
+
+    public void addEmpregado(String emp, Empregado empregado){
+        this.empregados.put(emp, empregado);
     }
 
-    public void addMembro(MembroSindicato membro){
-        this.listaDeMembros.put(membro.getIdMembro(), membro);
+    public void replace(String emp, Empregado empregado2){
+        this.empregados.replace(emp, empregado2);
     }
 
-    public void replace(Empregado empregado1, Empregado empregado2){
-        this.empregados.replace(empregado1.getUuid(), empregado2);
-    }
-    public Map<String, MembroSindicato> getListaDeMembros() {
+    public Map<String, String> getListaDeMembros() {
         return listaDeMembros;
     }
 
-    public void setListaDeMembros(Map<String, MembroSindicato> listaDeMembros) {
+    public void setListaDeMembros(Map<String, String> listaDeMembros) {
         this.listaDeMembros = listaDeMembros;
     }
-    public MembroSindicato getMembroById(String idMembro) throws MembroNaoExisteException, NaoSindicalizado {
-        if(idMembro == null)
-            throw new NaoSindicalizado();
+
+    public MembroSindicato criaNovoMembroSindicato(String idSindicato, float taxaSindical) throws MesmaIdentificacaoSindical {
+        if(this.listaDeMembros.containsKey(idSindicato))
+            throw new MesmaIdentificacaoSindical();
+        return new MembroSindicato(idSindicato, taxaSindical);
+    }
+
+    public void addMembro(String emp, MembroSindicato membro) {
+        Empregado empregado = this.empregados.get(emp);
+        if(empregado.getMembroSindicato() instanceof MembroSindicato membroSindicato)
+            this.listaDeMembros.remove(membroSindicato.getIdMembro());
+        empregado.setMembroSindicato(membro);
+        if(membro instanceof MembroSindicato membroSindicato)
+            this.listaDeMembros.put(membroSindicato.getIdMembro(), emp);
+    }
+
+    public String getEmpregadoIdPeloMembro(String idMembro) throws MembroNaoExisteException {
         if(! (this.listaDeMembros.containsKey(idMembro)))
             throw new MembroNaoExisteException();
         return this.listaDeMembros.get(idMembro);
     }
+
     public Empregado getEmpregadoById(String idEmpregado) throws EmpregadoNaoExisteException {
         if(! (this.empregados.containsKey(idEmpregado)))
             throw new EmpregadoNaoExisteException();
@@ -57,18 +75,15 @@ public class SistemaDeFolha {
     }
 
     public String getEmpregadoByName(String nome, int indice) throws NaoEmpregadoNome {
-        for(Empregado empregado: this.empregados.values()){
-            if(nome.equals(empregado.getNome()) && --indice == 0)
-                return empregado.getUuid();
+        for(Map.Entry<String, Empregado> empregado: this.empregados.entrySet()){
+            if(nome.equals(empregado.getValue().getNome()) && --indice == 0)
+                return empregado.getKey();
         }
         throw new NaoEmpregadoNome();
     }
-    public void remove(String idEmpregado) {
-        this.empregados.remove(idEmpregado);
-    }
 
-    public boolean membroExiste(String membroId){
-        return this.listaDeMembros.containsKey(membroId);
+    public void removeEmpregado(String idEmpregado) {
+        this.empregados.remove(idEmpregado);
     }
 
     public void removeMembro(String membroId){
@@ -86,10 +101,52 @@ public class SistemaDeFolha {
     public AgendaDePagamento getAgendaByEmpregado(Empregado empregado) {
         return this.agendas.get(empregado.getAgenda());
     }
+
+    public void criaAgenda(String descricao) throws AgendaJaExiste, DescricaoAgendaInvalida {
+        if(this.agendas.containsKey(descricao))
+            throw new AgendaJaExiste();
+        String[] parametros = descricao.split(" ");
+        try {
+            if (parametros[0].equals("mensal")) {
+                if(parametros.length == 2){
+                    if(parametros[1].equals("$")) {
+                        this.agendas.put(descricao, new Mensal(0));
+                        return;
+                    }
+                    int dia = Integer.parseInt(parametros[1]);
+                    if(dia > 0 && dia < 29) {
+                        this.agendas.put(descricao, new Mensal(dia));
+                        return;
+                    }
+                }
+            } else if (parametros[0].equals("semanal")) {
+                if(parametros.length == 2){
+                    int semana = Integer.parseInt(parametros[1]);
+                    if(semana > 0 && semana < 8) {
+                        this.agendas.put(descricao, new Semanal(1, semana));
+                        return;
+                    }
+                }else if(parametros.length == 3){
+                    int periodicidade = Integer.parseInt(parametros[1]);
+                    int semana = Integer.parseInt(parametros[2]);
+                    if(periodicidade > 0 && periodicidade < 53 && semana > 0 && semana < 8) {
+                        this.agendas.put(descricao, new Semanal(periodicidade, semana));
+                        return;
+                    }
+                }
+            }
+        }catch (Exception e) {
+            throw new DescricaoAgendaInvalida();
+        }
+        throw new DescricaoAgendaInvalida();
+    }
+
     public boolean agendaExiste(String agenda){
         return this.agendas.containsKey(agenda);
     }
+
     public void addAgenda(String descricao, AgendaDePagamento agenda){
         this.agendas.put(descricao, agenda);
     }
+
 }
