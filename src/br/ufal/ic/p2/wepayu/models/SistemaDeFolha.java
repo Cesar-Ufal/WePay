@@ -86,10 +86,6 @@ public class SistemaDeFolha {
         this.empregados.remove(idEmpregado);
     }
 
-    public void removeMembro(String membroId){
-        this.listaDeMembros.remove(membroId);
-    }
-
     public void setAgendas(Map<String, AgendaDePagamento> agendas) {
         this.agendas = agendas;
     }
@@ -143,10 +139,6 @@ public class SistemaDeFolha {
 
     public boolean agendaExiste(String agenda){
         return this.agendas.containsKey(agenda);
-    }
-
-    public void addAgenda(String descricao, AgendaDePagamento agenda){
-        this.agendas.put(descricao, agenda);
     }
 
 }

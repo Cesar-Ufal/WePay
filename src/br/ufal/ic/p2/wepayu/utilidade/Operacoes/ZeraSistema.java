@@ -2,9 +2,7 @@ package br.ufal.ic.p2.wepayu.utilidade.Operacoes;
 
 import br.ufal.ic.p2.wepayu.models.Agendas.AgendaDePagamento;
 import br.ufal.ic.p2.wepayu.models.Empregados.Empregado;
-import br.ufal.ic.p2.wepayu.models.Sindicato.MembroSindicato;
 
-import java.io.Serializable;
 import java.util.Map;
 
 public class ZeraSistema extends Operacao {

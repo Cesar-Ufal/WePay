@@ -2,8 +2,6 @@ package br.ufal.ic.p2.wepayu.utilidade.Operacoes;
 
 import br.ufal.ic.p2.wepayu.models.Empregados.Registros.ResultadoDeVenda;
 
-import java.io.Serializable;
-
 public class LancaVenda extends Operacao {
     private ResultadoDeVenda venda;
     public LancaVenda(String emp, ResultadoDeVenda venda) {

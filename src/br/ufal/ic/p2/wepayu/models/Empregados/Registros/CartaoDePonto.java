@@ -1,16 +1,12 @@
 package br.ufal.ic.p2.wepayu.models.Empregados.Registros;
 
-import br.ufal.ic.p2.wepayu.Exception.DataInvalida;
-import br.ufal.ic.p2.wepayu.utilidade.Sanitation;
-
 import java.io.Serializable;
-import java.time.LocalDate;
 
 public class CartaoDePonto implements Serializable {
     private float horas;
     private String data;
 
-    public CartaoDePonto(float horas, String data) throws DataInvalida {
+    public CartaoDePonto(float horas, String data) {
         this();
         this.setHoras(horas);
         this.setData(data);

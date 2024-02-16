@@ -8,8 +8,8 @@ public class Semanal extends AgendaDePagamento implements Serializable {
     private int dayOfWeek;
 
     public Semanal(int periodicidade, int dayOfWeek) {
-        this.periodicidade = periodicidade;
-        this.dayOfWeek = dayOfWeek;
+        this.setPeriodicidade(periodicidade);
+        this.setDayOfWeek(dayOfWeek);
     }
 
     public Semanal(){
