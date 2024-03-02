@@ -32,7 +32,7 @@
   </void>
   <void property="empregados">
    <void method="put">
-    <string>220949b4-6c94-456e-9481-041cb1f4f6d2</string>
+    <string>ca13bb8b-ae9c-484c-9227-09e9d45b6db9</string>
     <object class="br.ufal.ic.p2.wepayu.models.empregados.Horista">
      <void property="agenda">
       <string>mensal 1</string>

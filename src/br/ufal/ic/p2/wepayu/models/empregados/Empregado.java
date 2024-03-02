@@ -55,7 +55,7 @@ public abstract class Empregado {
         return this.membroSindicato;
     }
 
-    public MembroSindicato getMembro() throws NaoSindicalizadoException {
+    public MembroSindicato getMembro() throws NaoEhException {
         if(this.membroSindicato == null)
             throw new NaoSindicalizadoException();
         return this.membroSindicato;
@@ -198,7 +198,7 @@ public abstract class Empregado {
         throw new NaoComissionadoException();
     }
 
-    public float getServico(LocalDate dataInicial, LocalDate dataFinal) throws CronologicaException, NaoSindicalizadoException {
+    public float getServico(LocalDate dataInicial, LocalDate dataFinal) throws CronologicaException, NaoEhException {
         Sanitation.ordemCronologica(dataInicial, dataFinal);
         MembroSindicato membro = this.getMembro();
         float valor = 0;

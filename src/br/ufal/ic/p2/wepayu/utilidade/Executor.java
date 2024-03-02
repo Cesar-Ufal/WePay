@@ -451,7 +451,7 @@ public class Executor {
                                                 metodoPagamento)
                                 );
                         }
-                        default -> throw new IllegalStateException("Unexpected value: " + empregado);
+                        default -> System.out.println("Você não deveria estar vendo isso...");
                     }
                 }
             }
