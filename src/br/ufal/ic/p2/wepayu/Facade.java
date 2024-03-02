@@ -1,9 +1,6 @@
 package br.ufal.ic.p2.wepayu;
 
-import br.ufal.ic.p2.wepayu.Exception.*;
 import br.ufal.ic.p2.wepayu.utilidade.Executor;
-import br.ufal.ic.p2.wepayu.utilidade.TipoGet;
-import br.ufal.ic.p2.wepayu.utilidade.TipoLancamento;
 
 public class Facade {
 
@@ -42,31 +39,31 @@ public class Facade {
     }
 
     public String getHorasNormaisTrabalhadas(String emp, String dataInicial, String dataFinal) throws Exception{
-        return this.executor.get(emp, dataInicial, dataFinal, TipoGet.horasNormais);
+        return this.executor.get(emp, dataInicial, dataFinal, "horasNormais");
     }
 
     public String getHorasExtrasTrabalhadas(String emp, String dataInicial, String dataFinal) throws Exception{
-        return this.executor.get(emp, dataInicial, dataFinal, TipoGet.horasExtras);
+        return this.executor.get(emp, dataInicial, dataFinal, "horasExtras");
     }
 
     public String getVendasRealizadas(String emp, String dataInicial, String dataFinal) throws Exception{
-        return this.executor.get(emp, dataInicial, dataFinal, TipoGet.vendasRealizadas);
+        return this.executor.get(emp, dataInicial, dataFinal, "vendasRealizadas");
     }
 
     public String getTaxasServico(String emp, String dataInicial, String dataFinal) throws Exception{
-        return this.executor.get(emp, dataInicial, dataFinal, TipoGet.taxaSindicato);
+        return this.executor.get(emp, dataInicial, dataFinal, "taxaSindicato");
     }
 
     public void lancaTaxaServico(String membro, String data, String valor) throws Exception{
-        this.executor.lanca(membro, data, valor, TipoLancamento.servico);
+        this.executor.lanca(membro, data, valor, "servico");
     }
 
     public void lancaVenda(String emp, String data, String valor) throws Exception{
-        this.executor.lanca(emp, data, valor, TipoLancamento.venda);
+        this.executor.lanca(emp, data, valor, "venda");
     }
 
     public void lancaCartao(String emp, String data, String hora) throws Exception{
-        this.executor.lanca(emp, data, hora, TipoLancamento.cartao);
+        this.executor.lanca(emp, data, hora, "cartao");
     }
 
     public void alteraEmpregado(String emp, String atributo, String valor) throws Exception{
@@ -105,7 +102,7 @@ public class Facade {
         return this.executor.getNumeroDeEmpregados();
     }
 
-    public void criarAgendaDePagamentos(String descricao) throws DescricaoAgendaInvalida, AgendaJaExiste {
+    public void criarAgendaDePagamentos(String descricao) throws Exception {
         this.executor.criaAgendaPagamentos(descricao);
     }
 

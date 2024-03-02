@@ -1,14 +1,24 @@
 package br.ufal.ic.p2.wepayu.utilidade;
 
-import br.ufal.ic.p2.wepayu.Exception.*;
-import br.ufal.ic.p2.wepayu.models.Agendas.*;
-import br.ufal.ic.p2.wepayu.models.Empregados.*;
-import br.ufal.ic.p2.wepayu.models.Empregados.Pagamentos.*;
-import br.ufal.ic.p2.wepayu.models.Empregados.Registros.*;
+import br.ufal.ic.p2.wepayu.exception.CronologicaException;
+import br.ufal.ic.p2.wepayu.exception.executor.DesfazerException;
+import br.ufal.ic.p2.wepayu.exception.executor.EncerrarSistemaException;
+import br.ufal.ic.p2.wepayu.exception.existe.AgendaNaoDisponivelException;
+import br.ufal.ic.p2.wepayu.exception.existe.ExisteException;
+import br.ufal.ic.p2.wepayu.exception.invalido.*;
+import br.ufal.ic.p2.wepayu.exception.naoeh.NaoComissionadoException;
+import br.ufal.ic.p2.wepayu.exception.naoeh.NaoEhException;
+import br.ufal.ic.p2.wepayu.exception.naoeh.NaoHoristaException;
+import br.ufal.ic.p2.wepayu.exception.nulo.NuloException;
+import br.ufal.ic.p2.wepayu.exception.numerico.NumericoException;
+import br.ufal.ic.p2.wepayu.models.agendas.*;
+import br.ufal.ic.p2.wepayu.models.empregados.*;
+import br.ufal.ic.p2.wepayu.models.empregados.pagamentos.*;
+import br.ufal.ic.p2.wepayu.models.empregados.registros.*;
 import br.ufal.ic.p2.wepayu.models.SistemaDeFolha;
-import br.ufal.ic.p2.wepayu.utilidade.Operacoes.*;
-import br.ufal.ic.p2.wepayu.models.Sindicato.MembroSindicato;
-import br.ufal.ic.p2.wepayu.models.Sindicato.TaxaServico;
+import br.ufal.ic.p2.wepayu.utilidade.operacoes.*;
+import br.ufal.ic.p2.wepayu.models.sindicato.MembroSindicato;
+import br.ufal.ic.p2.wepayu.models.sindicato.TaxaServico;
 
 import java.beans.XMLDecoder;
 import java.beans.XMLEncoder;
@@ -56,213 +66,90 @@ public class Executor {
         redoStack = null;
     }
 
-    public void zerarSistema() throws Exception {
+    public void zerarSistema() throws ExisteException, NuloException, NumericoException, IOException, NaoEhException {
         this.executar(new ZeraSistema(this.folha.getListaDeMembros(), this.folha.getEmpregados(), this.folha.getAgendas()));
     }
 
-    public String getAtributoEmpregado(String emp, String atributo) throws Exception {
-        Sanitation.notNull(emp, Atributo.idEmpregado);
+    public String getAtributoEmpregado(String emp, String atributoString) throws NuloException, ExisteException, NaoEhException {
         Empregado empregado = this.folha.getEmpregadoById(emp);
-        return switch (Sanitation.getAtributo(atributo)) {
-            case nome -> empregado.getNome();
-            case endereco -> empregado.getEndereco();
-            case sindicalizado -> empregado.ehSindicalizado() ? "true" : "false";
-            case tipo -> empregado.getTipo();
-            case salario -> Sanitation.toString(empregado.getSalario(), TipoNumerico.salario);
-            case comissao -> Sanitation.toString(empregado.getComissao(), TipoNumerico.comissao);
-            case metodoPagamento -> empregado.getMetodo();
-            case idSindicato -> empregado.getIdSindicato();
-            case taxaSindical -> Sanitation.toString(empregado.getTaxaSindical(), TipoNumerico.taxaSindical);
-            case banco -> empregado.getBanco();
-            case agencia -> empregado.getAgencia();
-            case contaCorrente -> empregado.getContaCorrente();
-            case agendaPagamento -> empregado.getAgenda();
-            default -> "";
-        };
+        Atributo atributo = Sanitation.getAtributo(atributoString);
+        return empregado.getString(atributo);
     }
 
-    public String getEmpregadoPorNome(String nome, String indice) throws Exception {
-        Sanitation.notNull(nome, Atributo.nome);
+    public String getEmpregadoPorNome(String nome, String indice) throws NuloException, NaoEhException {
         return this.folha.getEmpregadoByName(nome, Integer.parseInt(indice));
     }
 
-    public String criarEmpregado(String nome, String endereco, String tipo, String salario, String taxaDeComissao) throws Exception {
-        Sanitation.notNull(nome, Atributo.nome);
-        Sanitation.notNull(endereco, Atributo.endereco);
-        Sanitation.notNull(salario, Atributo.salario);
-        float salarioFloat = Sanitation.toFloat(salario, TipoNumerico.salario);
-        Empregado empregado;
-        if(taxaDeComissao != null) {
-            Sanitation.notNull(taxaDeComissao, Atributo.comissao);
-            float comissaoFloat = Sanitation.toFloat(taxaDeComissao, TipoNumerico.comissao);
-            if(! tipo.equals("comissionado"))
-                throw new TipoNaoAplicavel();
-            empregado = new Comissionado(nome, endereco, salarioFloat, comissaoFloat);
-        } else {
-            empregado = switch (tipo) {
-                case "horista" -> new Horista(nome, endereco, salarioFloat);
-                case "assalariado" -> new Assalariado(nome, endereco, salarioFloat);
-                case "comissionado" -> throw new TipoNaoAplicavel();
-                default -> throw new TipoInvalido();
-            };
-        }
+    public String criarEmpregado(String nome, String endereco, String tipo, String salario, String taxaDeComissao) throws NuloException, NumericoException, InvalidoException, ExisteException, IOException, NaoEhException {
+        Empregado empregado = switch (tipo) {
+            case "horista" -> new Horista(nome, endereco, salario, taxaDeComissao);
+            case "assalariado" -> new Assalariado(nome, endereco, salario, taxaDeComissao);
+            case "comissionado" -> new Comissionado(nome, endereco, salario, taxaDeComissao);
+            default -> throw new TipoInvalidoException();
+        };
         String emp = UUID.randomUUID().toString();
         this.executar(new CriaEmpregado(emp, empregado));
         return emp;
     }
 
-    public void removerEmpregado(String emp) throws Exception {
-        Sanitation.notNull(emp, Atributo.idEmpregado);
+    public void removerEmpregado(String emp) throws ExisteException, NuloException, NumericoException, IOException, NaoEhException {
         this.executar(new RemoveEmpregado(emp, this.folha.getEmpregadoById(emp)));
     }
 
-    public void lanca(String id, String data, String valor, TipoLancamento tipo) throws Exception {
-        Sanitation.isValid(data, TipoDate.Data);
-        Operacao operacao;
-        switch (tipo){
-            case cartao -> {
-                float valorFloat = Sanitation.toFloat(valor, TipoNumerico.hora);
-                Sanitation.notNull(id, Atributo.idEmpregado);
-                Empregado empregado = this.folha.getEmpregadoById(id);
-                if (!(empregado instanceof Horista))
-                    throw new NaoHorista();
-                operacao = new LancaCartao(id, new CartaoDePonto(valorFloat, data));
-            }
-            case venda -> {
-                float valorFloat = Sanitation.toFloat(valor, TipoNumerico.valor);
-                Sanitation.notNull(id, Atributo.idEmpregado);
-                Empregado empregado = this.folha.getEmpregadoById(id);
-                if (!(empregado instanceof Comissionado))
-                    throw new NaoComissionado();
-                operacao = new LancaVenda(id, new ResultadoDeVenda(valorFloat, data));
-            }
-            case servico -> {
-                float valorFloat = Sanitation.toFloat(valor, TipoNumerico.valor);
-                Sanitation.notNull(id, Atributo.membro);
-                id = this.folha.getEmpregadoIdPeloMembro(id);
-                operacao = new LancaServico(id, new TaxaServico(data, valorFloat));
-            }
-            default -> throw new IllegalStateException("Unexpected value: " + tipo);
-        }
+    public void lanca(String emp, String data, String valor, String tipoString) throws NumericoException, NuloException, InvalidoException, ExisteException, IOException, NaoEhException {
+        TipoLancamento tipo = TipoLancamento.valueOf(tipoString);
+        Operacao operacao = switch (tipo){
+            case cartao -> new LancaCartao(emp, new CartaoDePonto(valor, data));
+            case venda -> new LancaVenda(emp, new ResultadoDeVenda(valor, data));
+            case servico -> new LancaServico(emp, new TaxaServico(data, valor));
+        };
         this.executar(operacao);
     }
 
-    public String get(String emp, String dataInicialString, String dataFinalString, TipoGet tipo) throws Exception{
-        Sanitation.notNull(emp, Atributo.idEmpregado);
+    public String get(String emp, String dataInicialString, String dataFinalString, String tipoString) throws ExisteException, NuloException, CronologicaException, NaoEhException, InvalidoException {
+        TipoGet tipo = TipoGet.valueOf(tipoString);
         LocalDate dataInicial = Sanitation.isValid(dataInicialString, TipoDate.DataInicial);
         LocalDate dataFinal = Sanitation.isValid(dataFinalString, TipoDate.DataFinal);
-        Sanitation.ordemCronologica(dataInicial, dataFinal);
         Empregado empregado = this.folha.getEmpregadoById(emp);
-        switch(tipo){
-            case horasNormais, horasExtras -> {
-                if(! (empregado instanceof Horista))
-                    throw new NaoHorista();
-                float horas = 0;
-                for(CartaoDePonto cartao : ((Horista) empregado).getCartoes()) {
-                    LocalDate dataCartao = Sanitation.toDate(cartao.getData());
-                    if (Sanitation.between(dataCartao, dataInicial, dataFinal)) {
-                        if (tipo == TipoGet.horasNormais)
-                            horas += cartao.getHoras() > 8 ? 8 : cartao.getHoras();
-                        else
-                            horas += cartao.getHoras() > 8 ? cartao.getHoras() - 8 : 0;
-                    }
-                }
-                return Sanitation.toString(horas, TipoNumerico.hora);
-            }
-            case vendasRealizadas -> {
-                if(!(empregado instanceof Comissionado))
-                    throw new NaoComissionado();
-                float vendas = 0;
-                for(ResultadoDeVenda venda : ((Comissionado) empregado).getVendas()) {
-                    LocalDate dataCartao = Sanitation.toDate(venda.getData());
-                    if (Sanitation.between(dataCartao, dataInicial, dataFinal))
-                        vendas += venda.getValor();
-                }
-                return Sanitation.toString(vendas, TipoNumerico.valor);
-            }
-            case taxaSindicato -> {
-                if(! empregado.ehSindicalizado())
-                    throw new NaoSindicalizado();
-                MembroSindicato membro = empregado.getMembroSindicato();
-                float valor = 0;
-                for(TaxaServico taxa : membro.getTaxas()){
-                    LocalDate dataTaxa = Sanitation.toDate(taxa.getData());
-                    if(Sanitation.between(dataTaxa, dataInicial, dataFinal))
-                        valor += taxa.getValor();
-                }
-                return Sanitation.toString(valor, TipoNumerico.valor);
-            }
-            default -> throw new IllegalStateException("Unexpected value: " + tipo);
-        }
+        float valor =  switch(tipo) {
+            case horasNormais, horasExtras -> empregado.getHoras(dataInicial, dataFinal, tipo);
+            case vendasRealizadas -> empregado.getVendas(dataInicial, dataFinal);
+            default -> empregado.getServico(dataInicial, dataFinal);
+        };
+        if(tipo == TipoGet.horasNormais || tipo == TipoGet.horasExtras)
+            return Sanitation.toString(valor, TipoNumerico.hora);
+        return Sanitation.toString(valor, TipoNumerico.valor);
     }
 
-    public void alteraEmpregado(String emp, String atributo, String valor, String salario, String taxaSindical, String contaCorrente) throws Exception{
-        Sanitation.notNull(emp, Atributo.idEmpregado);
+    public void alteraEmpregado(String emp, String atributo, String valor, String salario, String taxaSindical, String contaCorrente) throws InvalidoException, NaoEhException, ExisteException, NuloException, NumericoException, IOException {
         Atributo atributoEmpregado = Sanitation.getAtributo(atributo);
         Sanitation.notNull(valor, atributoEmpregado);
         Empregado empregado = this.folha.getEmpregadoById(emp);
         Operacao operacao = null;
         switch (atributoEmpregado){
-            case nome -> {
-                if(salario == null && taxaSindical == null && contaCorrente == null)
-                    operacao = new AlteraEmpregado(emp, atributoEmpregado, empregado.getNome(), valor);
+            case agendaPagamento -> {
+                if(salario == null && taxaSindical == null && contaCorrente == null){
+                    if(! this.folha.agendaExiste(valor))
+                        throw new AgendaNaoDisponivelException();
+                    operacao = new AlteraEmpregado(emp, atributoEmpregado, empregado.getString(atributoEmpregado), valor);
+                }
             }
-            case endereco -> {
+            case nome, endereco, salario, comissao -> {
                 if(salario == null && taxaSindical == null && contaCorrente == null)
-                    operacao = new AlteraEmpregado(emp, atributoEmpregado, empregado.getEndereco(), valor);
+                    operacao = new AlteraEmpregado(emp, atributoEmpregado, empregado.getString(atributoEmpregado), valor);
             }
             case tipo -> {
-                if(taxaSindical == null && contaCorrente == null){
-                    Empregado empregadoNovo;
-                    float salarioFloat = -1;
-                    if(salario != null)
-                        salarioFloat = Sanitation.toFloat(salario, TipoNumerico.comissao);
-                    switch (valor){
-                        case "horista":
-                            if(salarioFloat < 0)
-                                empregadoNovo = new Horista(empregado);
-                            else
-                                empregadoNovo = new Horista(empregado, salarioFloat);
-                            break;
-                        case "assalariado":
-                            if(salarioFloat < 0)
-                                empregadoNovo = new Assalariado(empregado);
-                            else
-                                empregadoNovo = new Assalariado(empregado, salarioFloat);
-                            break;
-                        case "comissionado":
-                            if(salarioFloat < 0)
-                                throw new TipoInvalido();
-                            else
-                                empregadoNovo = new Comissionado(empregado, salarioFloat);
-                            break;
-                        default:
-                            throw new TipoInvalido();
-                   }
-                   operacao = new AlteraEmpregado(emp, atributoEmpregado, empregado, empregadoNovo);
-                }
-            }
-            case salario -> {
-                if(salario == null && taxaSindical == null && contaCorrente == null) {
-                    float salarioFloat = Sanitation.toFloat(valor, TipoNumerico.salario);
-                    operacao = new AlteraEmpregado(emp, atributoEmpregado, empregado.getSalario(), salarioFloat);
-                }
-            }
-            case comissao -> {
-                if(salario == null && taxaSindical == null && contaCorrente == null) {
-                    float comissaoFloat = Sanitation.toFloat(valor, TipoNumerico.comissao);
-                    operacao = new AlteraEmpregado(emp, atributoEmpregado, empregado.getComissao(), comissaoFloat);
+                if(contaCorrente == null){
+                    Empregado novoEmpregado = empregado.mudaTipo(valor, salario, taxaSindical);
+                    operacao = new AlteraEmpregado(emp, atributoEmpregado, empregado, novoEmpregado);
                 }
             }
             case sindicalizado -> {
                 if(salario == null && taxaSindical == null && contaCorrente == null && valor.equals("false")) {
                     operacao = new AlteraEmpregado(emp, atributoEmpregado, empregado.getMembroSindicato(), null);
                 } else if(contaCorrente == null && valor.equals("true")){
-                    Sanitation.notNull(salario, Atributo.idSindicato);
-                    Sanitation.notNull(taxaSindical, Atributo.taxaSindical);
-                    float taxa = Sanitation.toFloat(taxaSindical, TipoNumerico.taxaSindical);
-                    MembroSindicato membro = this.folha.criaNovoMembroSindicato(salario, taxa);
-                    operacao = new AlteraEmpregado(emp, atributoEmpregado, empregado.getMembroSindicato(), membro);
+                    MembroSindicato membroNovo = this.folha.criaNovoMembroSindicato(salario, taxaSindical);
+                    operacao = new AlteraEmpregado(emp, atributoEmpregado, empregado.getMembroSindicato(), membroNovo);
                 }
             }
             case metodoPagamento -> {
@@ -270,32 +157,22 @@ public class Executor {
                     MetodoPagamento pagamento = switch (valor){
                         case "correios" -> new Correios();
                         case "emMaos" -> new EmMaos();
-                        case "banco" -> throw new TipoNaoAplicavel();
-                        default -> throw new MetodoPagamentoInvalido();
+                        case "banco" -> throw new TipoNaoAplicavelException();
+                        default -> throw new MetodoPagamentoInvalidoException();
                     };
                     operacao = new AlteraEmpregado(emp, atributoEmpregado, empregado.getMetodoPagamento(), pagamento);
                 } else if(valor.equals("banco")){
-                    Sanitation.notNull(salario, Atributo.banco);
-                    Sanitation.notNull(taxaSindical, Atributo.agencia);
-                    Sanitation.notNull(contaCorrente, Atributo.contaCorrente);
                     Banco bancoNovo = new Banco(salario, taxaSindical, contaCorrente);
                     operacao = new AlteraEmpregado(emp, atributoEmpregado, empregado.getMetodoPagamento(), bancoNovo);
                 }
             }
-            case agendaPagamento -> {
-                if(salario == null && taxaSindical == null && contaCorrente == null){
-                    if(! this.folha.agendaExiste(valor))
-                        throw new AgendaNaoDisponivel();
-                    operacao = new AlteraEmpregado(emp, atributoEmpregado, empregado.getAgenda(), valor);
-                }
-            }
         }
         if(operacao == null)
-            throw new TipoInvalido();
+            throw new TipoInvalidoException();
         this.executar(operacao);
     }
 
-    public void executar(Operacao operacao) throws Exception {
+    public void executar(Operacao operacao) throws IOException, NuloException, NaoEhException, NumericoException, ExisteException {
         String emp = operacao.getId();
         switch (operacao) {
             case ZeraSistema ignored -> {
@@ -310,29 +187,38 @@ public class Executor {
                 writer.close();
             }
             case LancaCartao lancaCartao -> {
-                Horista horista = (Horista) this.folha.getEmpregadoById(emp);
+                Empregado empregado = this.folha.getEmpregadoById(emp);
+                Horista horista;
+                try{
+                    horista = (Horista) empregado;
+                } catch (Exception e){
+                    throw new NaoHoristaException();
+                }
                 horista.addCartao(lancaCartao.getCartao());
             }
             case LancaVenda lancaVenda -> {
-                Comissionado comissionado = (Comissionado) this.folha.getEmpregadoById(emp);
+                Empregado empregado = this.folha.getEmpregadoById(emp);
+                Comissionado comissionado;
+                try{
+                    comissionado = (Comissionado) empregado;
+                } catch (Exception e){
+                    throw new NaoComissionadoException();
+                }
                 comissionado.addVenda(lancaVenda.getVenda());
             }
             case LancaServico lancaServico ->{
-                Empregado empregado = this.folha.getEmpregadoById(emp);
+                Sanitation.notNull(emp, Atributo.membro);
+                Empregado empregado = this.folha.getEmpregadoIdPeloMembro(emp);
                 empregado.addServico(lancaServico.getServico());
             }
             case AlteraEmpregado alteraEmpregado -> {
                 Empregado empregado = this.folha.getEmpregadoById(emp);
                 Atributo atributo = alteraEmpregado.getAtributo();
                 switch (atributo){
-                    case nome -> empregado.setNome((String) alteraEmpregado.getValorNovo());
-                    case endereco -> empregado.setEndereco((String) alteraEmpregado.getValorNovo());
+                    case nome, endereco, salario, comissao, metodoPagamento, agendaPagamento ->
+                            empregado.setString(atributo, alteraEmpregado.getValorNovo());
                     case tipo -> this.folha.replace(emp, (Empregado) alteraEmpregado.getValorNovo());
-                    case salario -> empregado.setSalario((float) alteraEmpregado.getValorNovo());
-                    case comissao -> empregado.setTComissao((float) alteraEmpregado.getValorNovo());
                     case sindicalizado -> this.folha.addMembro(emp, (MembroSindicato) alteraEmpregado.getValorNovo());
-                    case metodoPagamento -> empregado.setMetodoPagamento((MetodoPagamento) alteraEmpregado.getValorNovo());
-                    case agendaPagamento -> empregado.setAgenda((String) alteraEmpregado.getValorNovo());
                 }
             }
             default -> {
@@ -393,7 +279,7 @@ public class Executor {
             seraPago = false;
             LocalDate contratacao;
             if(empregado.getDataContratacao() == null)
-                contratacao = Sanitation.toDate("1/1/2005");
+                contratacao = Sanitation.toDate("1/1/2000");
             else
                 contratacao = Sanitation.toDate(empregado.getDataContratacao());
             if(! contratacao.isAfter(diaAtual)){
@@ -420,12 +306,12 @@ public class Executor {
                         }
                     }
                     default ->
-                            throw new IllegalStateException("Unexpected value: " + this.folha.getAgendaByEmpregado(empregado));
+                            System.out.println("Você não deveria estar vendo isso...");
                 }
                 if(seraPago){
                     LocalDate dataInicial = dataFinal.minusDays(between);
-                    descontos = 0;
-                    if(empregado.ehSindicalizado()){
+                    descontos = empregado.getDivida();
+                    if(empregado.getMembroSindicato() != null){
                         MembroSindicato membro = empregado.getMembroSindicato();
                         for(TaxaServico taxa : membro.getTaxas()) {
                             LocalDate dataTaxa = Sanitation.toDate(taxa.getData());
@@ -457,8 +343,20 @@ public class Executor {
                             horistaExtrasTotais += extra;
                             salarioBruto = (horas + 1.5f * extra) * empregado.getSalario();
                             horistaBrutoTotais += salarioBruto;
-                            if(descontos > salarioBruto)
+                            if(descontos > salarioBruto){
+                                if(saida != null) {
+                                    empregado.setDivida(descontos - salarioBruto);
+                                }
                                 descontos = salarioBruto;
+                            } else {
+                                if(saida != null) {
+                                    if (empregado.getDivida() > salarioBruto - descontos) {
+                                        empregado.setDivida(descontos - salarioBruto);
+                                    } else {
+                                        empregado.setDivida(0);
+                                    }
+                                }
+                            }
                             horistaDescontosTotais += descontos;
                             salarioLiquido = salarioBruto - descontos;
                             horistaLiquidoTotais += salarioLiquido;
@@ -480,8 +378,19 @@ public class Executor {
                             else
                                 salarioBruto = assalariado.getSalarioMensal();
                             assalariadoBrutoTotais += salarioBruto;
-                            if(descontos > salarioBruto)
+                            if(descontos > salarioBruto){
+                                if(saida != null)
+                                    empregado.setDivida(descontos - salarioBruto);
                                 descontos = salarioBruto;
+                            } else {
+                                if(saida != null) {
+                                    if (empregado.getDivida() > salarioBruto - descontos) {
+                                        empregado.setDivida(descontos - salarioBruto);
+                                    } else {
+                                        empregado.setDivida(0);
+                                    }
+                                }
+                            }
                             assalariadoDescontosTotais += descontos;
                             salarioLiquido = salarioBruto - descontos;
                             assalariadoLiquidoTotais += salarioLiquido;
@@ -513,8 +422,19 @@ public class Executor {
                             comissionadoComissaoTotais += comissao;
                             salarioBruto = fixo + comissao;
                             comissionadoBrutoTotais += salarioBruto;
-                            if(descontos > salarioBruto)
+                            if(descontos > salarioBruto){
+                                if(saida != null)
+                                    empregado.setDivida(descontos - salarioBruto);
                                 descontos = salarioBruto;
+                            } else {
+                                if(saida != null) {
+                                    if (empregado.getDivida() > salarioBruto - descontos) {
+                                        empregado.setDivida(descontos - salarioBruto);
+                                    } else {
+                                        empregado.setDivida(0);
+                                    }
+                                }
+                            }
                             comissionadoDescontosTotais += descontos;
                             salarioLiquido = salarioBruto - descontos;
                             comissionadoLiquidoTotais += salarioLiquido;
@@ -592,9 +512,9 @@ public class Executor {
 
     public void undo() throws Exception {
         if(redoStack == null)
-            throw new Exception("Nao pode dar comandos depois de encerrarSistema.");
+            throw new EncerrarSistemaException();
         if(undoStack.isEmpty())
-            throw new Exception("Nao ha comando a desfazer.");
+            throw new DesfazerException();
         Operacao operacao = undoStack.pop();
         String emp = operacao.getId();
         switch (operacao) {
@@ -615,21 +535,17 @@ public class Executor {
                 comissionado.removeVenda(lancaVenda.getVenda());
             }
             case LancaServico lancaServico ->{
-                Empregado empregado = this.folha.getEmpregadoById(emp);
+                Empregado empregado = this.folha.getEmpregadoIdPeloMembro(emp);
                 empregado.removeServico(lancaServico.getServico());
             }
             case AlteraEmpregado alteraEmpregado -> {
                 Empregado empregado = this.folha.getEmpregadoById(emp);
                 Atributo atributo = alteraEmpregado.getAtributo();
                 switch (atributo){
-                    case nome -> empregado.setNome((String) alteraEmpregado.getValorAntigo());
-                    case endereco -> empregado.setEndereco((String) alteraEmpregado.getValorAntigo());
+                    case nome, endereco, salario, comissao, metodoPagamento, agendaPagamento ->
+                            empregado.setString(atributo, alteraEmpregado.getValorAntigo());
                     case tipo -> this.folha.replace(emp, (Empregado) alteraEmpregado.getValorAntigo());
-                    case salario -> empregado.setSalario((float) alteraEmpregado.getValorAntigo());
-                    case comissao -> empregado.setTComissao((float) alteraEmpregado.getValorAntigo());
                     case sindicalizado -> this.folha.addMembro(emp, (MembroSindicato) alteraEmpregado.getValorAntigo());
-                    case metodoPagamento -> empregado.setMetodoPagamento((MetodoPagamento) alteraEmpregado.getValorAntigo());
-                    case agendaPagamento -> empregado.setAgenda((String) alteraEmpregado.getValorAntigo());
                 }
             }
             default -> {
@@ -640,9 +556,9 @@ public class Executor {
 
     public void redo() throws Exception {
         if(redoStack == null)
-            throw new Exception("Nao pode dar comandos depois de encerrarSistema.");
+            throw new EncerrarSistemaException();
         if(redoStack.isEmpty())
-            throw new Exception("Nao ha comando a desfazer");
+            throw new DesfazerException();
         this.executar(redoStack.pop());
     }
 
@@ -650,7 +566,8 @@ public class Executor {
         return Integer.toString(this.folha.getEmpregados().size());
     }
 
-    public void criaAgendaPagamentos(String descricao) throws DescricaoAgendaInvalida, AgendaJaExiste {
+    public void criaAgendaPagamentos(String descricao) throws ExisteException, InvalidoException {
         this.folha.criaAgenda(descricao);
     }
+    
 }

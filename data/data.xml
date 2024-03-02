@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<java version="21.0.2" class="java.beans.XMLDecoder">
+ <object class="br.ufal.ic.p2.wepayu.models.SistemaDeFolha" id="SistemaDeFolha0">
+  <void id="HashMap0" property="agendas">
+   <void id="Semanal0" method="get">
+    <string>semanal 5</string>
+    <void id="Integer0" property="periodicidade"/>
+   </void>
+   <void method="put">
+    <string>mensal 1</string>
+    <object class="br.ufal.ic.p2.wepayu.models.agendas.Mensal">
+     <void property="dia">
+      <object idref="Integer0"/>
+     </void>
+    </object>
+   </void>
+   <void id="Semanal1" method="get">
+    <string>semanal 2 5</string>
+    <void id="Integer1" property="periodicidade"/>
+   </void>
+   <void method="put">
+    <string>semanal 2</string>
+    <object class="br.ufal.ic.p2.wepayu.models.agendas.Semanal">
+     <void property="dayOfWeek">
+      <object idref="Integer1"/>
+     </void>
+     <void property="periodicidade">
+      <object idref="Integer0"/>
+     </void>
+    </object>
+   </void>
+  </void>
+  <void property="empregados">
+   <void method="put">
+    <string>220949b4-6c94-456e-9481-041cb1f4f6d2</string>
+    <object class="br.ufal.ic.p2.wepayu.models.empregados.Horista">
+     <void property="agenda">
+      <string>mensal 1</string>
+     </void>
+     <void property="cartoes">
+      <object class="java.util.ArrayList"/>
+     </void>
+     <void property="endereco">
+      <string>Rua dos Jooes, 333 - Campina Grande</string>
+     </void>
+     <void property="metodoPagamento">
+      <object class="br.ufal.ic.p2.wepayu.models.empregados.pagamentos.EmMaos"/>
+     </void>
+     <void property="nome">
+      <string>Joao da Silva</string>
+     </void>
+     <void property="salario">
+      <float>23.0</float>
+     </void>
+     <void property="tipo">
+      <string>horista</string>
+     </void>
+    </object>
+   </void>
+  </void>
+ </object>
+</java>

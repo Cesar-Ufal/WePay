@@ -1,6 +1,13 @@
 package br.ufal.ic.p2.wepayu.utilidade;
 
-import br.ufal.ic.p2.wepayu.Exception.*;
+import br.ufal.ic.p2.wepayu.exception.CronologicaException;
+import br.ufal.ic.p2.wepayu.exception.existe.AtributoNaoExisteException;
+import br.ufal.ic.p2.wepayu.exception.invalido.*;
+import br.ufal.ic.p2.wepayu.exception.nulo.*;
+import br.ufal.ic.p2.wepayu.exception.numerico.*;
+import br.ufal.ic.p2.wepayu.exception.numerico.negativo.*;
+import br.ufal.ic.p2.wepayu.exception.numerico.positivo.*;
+
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
@@ -15,77 +22,80 @@ public class Sanitation {
     private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("d/M/uuuu").withResolverStyle(ResolverStyle.STRICT);
     private static final DateTimeFormatter dateFileFormatter = DateTimeFormatter.ofPattern("uuuu-MM-dd").withResolverStyle(ResolverStyle.STRICT);
 
-    public static Atributo getAtributo(String atributoString) throws AtributoNaoExiste{
+    public static Atributo getAtributo(String atributoString) throws AtributoNaoExisteException {
         try{
             return Atributo.valueOf(atributoString);
         }catch (Exception e){
-            throw new AtributoNaoExiste();
+            throw new AtributoNaoExisteException();
         }
     }
 
-    public static void notNull(String str, Atributo atributo) throws Exception {
+    public static void notNull(String str, Atributo atributo) throws NuloException {
         if(str == null || str.isEmpty())
             switch (atributo) {
-                case idEmpregado -> throw new IdentificacaoNula();
-                case nome -> throw new NomeNulo();
-                case endereco -> throw new EnderecoNulo();
-                case tipo -> throw new TipoNulo();
-                case salario -> throw new SalarioNulo();
-                case comissao -> throw new ComissaoNula();
-                case idSindicato -> throw new IdSindicatoNula();
-                case taxaSindical -> throw new TaxaSindicalNula();
-                case banco -> throw new BancoNulo();
-                case agencia -> throw new AgenciaNulo();
-                case contaCorrente -> throw new ContaNulo();
-                case membro -> throw new MembroNulo();
-                case agendaPagamento -> throw new Exception("Agenda de pagamento nao pode ser nula.");
-                default -> throw new Exception("Erro Fatal!");
+                case idEmpregado -> throw new IdentificacaoNulaException();
+                case nome -> throw new NomeNuloException();
+                case endereco -> throw new EnderecoNuloException();
+                case tipo -> throw new TipoNuloException();
+                case salario -> throw new SalarioNuloException();
+                case comissao -> throw new ComissaoNulaException();
+                case idSindicato -> throw new IdSindicatoNuloException();
+                case taxaSindical -> throw new TaxaSindicalNulaException();
+                case banco -> throw new BancoNuloException();
+                case agencia -> throw new AgenciaNulaException();
+                case contaCorrente -> throw new ContaNulaException();
+                case membro -> throw new MembroNuloException();
+                case agendaPagamento -> throw new AgendaNulaException();
+                default -> throw new IllegalStateException("Unexpected value: " + atributo);
             }
         if(atributo == Atributo.sindicalizado && ! str.equals("true") && ! str.equals("false"))
-            throw new ValorTrueFalse();
+            throw new ValorTrueFalseException();
     }
 
-    public static float toFloat(String num, TipoNumerico tipo) throws Exception {
+    public static float toFloat(String num, TipoNumerico tipo) throws NuloException, NumericoException {
         float numFloat;
         try {
             numFloat = Float.parseFloat(num.replace(',', '.'));
         }catch (Exception e){
             switch (tipo) {
-                case salario -> throw new SalarioNumerico();
-                case comissao -> throw new ComissaoNumerica();
-                case taxaSindical -> throw new TaxaSindicalNumerica();
-                case hora -> throw new HoraNumerica();
-                case valor -> throw new ValorNumerico();
-                default -> throw new Exception("Erro inesperado, nao devia estar aqui!!!");
+                case salario -> throw new SalarioNumericoException();
+                case comissao -> throw new ComissaoNumericaException();
+                case taxaSindical -> throw new TaxaSindicalNumericaException();
+                case hora -> throw new HoraNumericaException();
+                case valor -> throw new ValorNumericoException();
+                default -> throw new IllegalStateException("Unexpected value: " + tipo);
             }
         }
-        if(numFloat < 0)
-            switch (tipo) {
-                case salario -> throw new SalarioNaoNegativo();
-                case comissao -> throw new ComissaoNaoNegativa();
-                case taxaSindical -> throw new TaxaSindicalNegativa();
-                case hora -> throw new HoraPositiva();
-                case valor -> throw new ValorPositivo();
-            }
-        if(numFloat == 0)
-            switch (tipo) {
-                case salario -> throw new SalarioNulo();
-                case comissao -> throw new ComissaoNula();
-                case hora -> throw new HoraPositiva();
-                case valor -> throw new ValorPositivo();
-            }
         return numFloat;
     }
 
-    public static LocalDate isValid(String dataString, TipoDate tipo) throws DataInvalida {
+    public static void numberValid(float num, TipoNumerico tipo) throws NumericoException, NuloException {
+        if(num < 0)
+            switch (tipo) {
+                case salario -> throw new SalarioNegativoException();
+                case comissao -> throw new ComissaoNegativaException();
+                case taxaSindical -> throw new TaxaSindicalNegativaException();
+                case hora -> throw new HoraPositivaException();
+                case valor -> throw new ValorPositivoException();
+            }
+        if(num == 0)
+            switch (tipo) {
+                case salario -> throw new SalarioNuloException();
+                case comissao -> throw new ComissaoNulaException();
+                case hora -> throw new HoraPositivaException();
+                case valor -> throw new ValorPositivoException();
+            }
+    }
+
+    public static LocalDate isValid(String dataString, TipoDate tipo) throws InvalidoException {
         LocalDate data;
         try {
             data = LocalDate.parse(dataString, dateFormatter);
         }catch (DateTimeParseException e){
             switch (tipo){
-                case DataInicial -> throw new DataInvalida(" inicial");
-                case DataFinal -> throw new DataInvalida(" final");
-                default -> throw new DataInvalida("");
+                case DataInicial -> throw new DataInvalidaException(" inicial");
+                case DataFinal -> throw new DataInvalidaException(" final");
+                default -> throw new DataInvalidaException("");
             }
         }
         return data;
@@ -105,9 +115,9 @@ public class Sanitation {
         return formatter.format((float) num);
     }
 
-    public static void ordemCronologica(LocalDate dataIncial, LocalDate dataFinal) throws Cronologica {
+    public static void ordemCronologica(LocalDate dataIncial, LocalDate dataFinal) throws CronologicaException {
         if(dataFinal.isBefore(dataIncial))
-            throw new Cronologica();
+            throw new CronologicaException();
     }
 
     public static boolean between(LocalDate data, LocalDate dataInicial, LocalDate dataFinal){

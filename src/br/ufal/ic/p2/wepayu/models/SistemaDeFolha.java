@@ -1,11 +1,20 @@
 package br.ufal.ic.p2.wepayu.models;
 
-import br.ufal.ic.p2.wepayu.Exception.*;
-import br.ufal.ic.p2.wepayu.models.Agendas.AgendaDePagamento;
-import br.ufal.ic.p2.wepayu.models.Agendas.Mensal;
-import br.ufal.ic.p2.wepayu.models.Agendas.Semanal;
-import br.ufal.ic.p2.wepayu.models.Empregados.Empregado;
-import br.ufal.ic.p2.wepayu.models.Sindicato.MembroSindicato;
+import br.ufal.ic.p2.wepayu.exception.existe.*;
+import br.ufal.ic.p2.wepayu.exception.invalido.DescricaoAgendaInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.invalido.InvalidoException;
+import br.ufal.ic.p2.wepayu.exception.naoeh.NaoEhException;
+import br.ufal.ic.p2.wepayu.exception.naoeh.NaoEmpregadoNomeException;
+import br.ufal.ic.p2.wepayu.exception.naoeh.NaoSindicalizadoException;
+import br.ufal.ic.p2.wepayu.exception.nulo.NuloException;
+import br.ufal.ic.p2.wepayu.exception.numerico.NumericoException;
+import br.ufal.ic.p2.wepayu.models.agendas.AgendaDePagamento;
+import br.ufal.ic.p2.wepayu.models.agendas.Mensal;
+import br.ufal.ic.p2.wepayu.models.agendas.Semanal;
+import br.ufal.ic.p2.wepayu.models.empregados.Empregado;
+import br.ufal.ic.p2.wepayu.models.sindicato.MembroSindicato;
+import br.ufal.ic.p2.wepayu.utilidade.Atributo;
+import br.ufal.ic.p2.wepayu.utilidade.Sanitation;
 
 import java.util.*;
 
@@ -47,39 +56,42 @@ public class SistemaDeFolha {
         this.listaDeMembros = listaDeMembros;
     }
 
-    public MembroSindicato criaNovoMembroSindicato(String idSindicato, float taxaSindical) throws MesmaIdentificacaoSindical {
+    public MembroSindicato criaNovoMembroSindicato(String idSindicato, String taxaSindical) throws ExisteException, NumericoException, NuloException {
+        Sanitation.notNull(idSindicato, Atributo.idSindicato);
         if(this.listaDeMembros.containsKey(idSindicato))
-            throw new MesmaIdentificacaoSindical();
+            throw new MesmaIdentificacaoSindicalException();
         return new MembroSindicato(idSindicato, taxaSindical);
     }
 
-    public void addMembro(String emp, MembroSindicato membro) {
+    public void addMembro(String emp, MembroSindicato membro) throws NaoEhException {
         Empregado empregado = this.empregados.get(emp);
-        if(empregado.getMembroSindicato() instanceof MembroSindicato membroSindicato)
-            this.listaDeMembros.remove(membroSindicato.getIdMembro());
+        if(empregado.getMembroSindicato() != null)
+            this.listaDeMembros.remove(empregado.getIdSindicato());
         empregado.setMembroSindicato(membro);
-        if(membro instanceof MembroSindicato membroSindicato)
-            this.listaDeMembros.put(membroSindicato.getIdMembro(), emp);
+        if(membro != null)
+            this.listaDeMembros.put(membro.getIdMembro(), emp);
     }
 
-    public String getEmpregadoIdPeloMembro(String idMembro) throws MembroNaoExisteException {
+    public Empregado getEmpregadoIdPeloMembro(String idMembro) throws ExisteException, NuloException {
         if(! (this.listaDeMembros.containsKey(idMembro)))
             throw new MembroNaoExisteException();
-        return this.listaDeMembros.get(idMembro);
+        return this.getEmpregadoById(this.listaDeMembros.get(idMembro));
     }
 
-    public Empregado getEmpregadoById(String idEmpregado) throws EmpregadoNaoExisteException {
+    public Empregado getEmpregadoById(String idEmpregado) throws ExisteException, NuloException {
+        Sanitation.notNull(idEmpregado, Atributo.idEmpregado);
         if(! (this.empregados.containsKey(idEmpregado)))
             throw new EmpregadoNaoExisteException();
         return this.empregados.get(idEmpregado);
     }
 
-    public String getEmpregadoByName(String nome, int indice) throws NaoEmpregadoNome {
+    public String getEmpregadoByName(String nome, int indice) throws NaoEhException, NuloException {
+        Sanitation.notNull(nome, Atributo.nome);
         for(Map.Entry<String, Empregado> empregado: this.empregados.entrySet()){
             if(nome.equals(empregado.getValue().getNome()) && --indice == 0)
                 return empregado.getKey();
         }
-        throw new NaoEmpregadoNome();
+        throw new NaoEmpregadoNomeException();
     }
 
     public void removeEmpregado(String idEmpregado) {
@@ -98,9 +110,9 @@ public class SistemaDeFolha {
         return this.agendas.get(empregado.getAgenda());
     }
 
-    public void criaAgenda(String descricao) throws AgendaJaExiste, DescricaoAgendaInvalida {
+    public void criaAgenda(String descricao) throws InvalidoException, ExisteException {
         if(this.agendas.containsKey(descricao))
-            throw new AgendaJaExiste();
+            throw new AgendaJaExisteException();
         String[] parametros = descricao.split(" ");
         try {
             if (parametros[0].equals("mensal")) {
@@ -132,9 +144,9 @@ public class SistemaDeFolha {
                 }
             }
         }catch (Exception e) {
-            throw new DescricaoAgendaInvalida();
+            throw new DescricaoAgendaInvalidaException();
         }
-        throw new DescricaoAgendaInvalida();
+        throw new DescricaoAgendaInvalidaException();
     }
 
     public boolean agendaExiste(String agenda){
